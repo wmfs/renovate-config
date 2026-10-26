@@ -1,0 +1,74 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Shared Renovate preset for Tymly repos (sc-34114). Use with: { \"extends\": [\"github>wmfs/renovate-config\"] }",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits"
+  ],
+  "dependencyDashboard": true,
+  "enabledManagers": ["npm"],
+  "timezone": "Europe/London",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "minimumReleaseAge": "3 days",
+  "hostRules": [
+    {
+      "hostType": "npm",
+      "matchHost": "registry.npmjs.org",
+      "token": "{{ secrets.NPM }}"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Runtime dependencies: build(deps), reviewed by the team",
+      "matchDepTypes": ["dependencies"],
+      "semanticCommitType": "build",
+      "semanticCommitScope": "deps",
+      "labels": ["dependencies"],
+      "reviewers": ["team:tymly-reviewers"]
+    },
+    {
+      "description": "Dev dependencies: build(deps-dev), automerge when CI passes",
+      "matchDepTypes": ["devDependencies"],
+      "semanticCommitType": "build",
+      "semanticCommitScope": "deps-dev",
+      "labels": ["devDependencies"],
+      "automerge": true
+    },
+    {
+      "description": "One weekly PR per repo for all non-major dev dependency updates",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "devDependencies (non-major)",
+      "groupSlug": "dev-non-major"
+    },
+    {
+      "description": "Group internal @wmfs packages so a release produces one PR per downstream repo. Not held by the weekly schedule or release age, so bottom-up merges flow through quickly",
+      "matchPackageNames": ["@wmfs/**"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "@wmfs packages",
+      "groupSlug": "wmfs-packages",
+      "schedule": ["at any time"],
+      "minimumReleaseAge": null
+    },
+    {
+      "description": "Major updates only open once someone ticks them on the Dependency Dashboard",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "chai 5+ is ESM-only and Tymly repos are CommonJS (see sc-34115 / sc-34123)",
+      "matchPackageNames": ["chai"],
+      "allowedVersions": "<5"
+    },
+    {
+      "description": "dirty-chai is unmaintained and incompatible with newer chai; to be removed (sc-34123)",
+      "matchPackageNames": ["dirty-chai"],
+      "enabled": false
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"]
+  }
+}
