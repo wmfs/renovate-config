@@ -66,6 +66,11 @@
       "description": "dirty-chai is unmaintained and incompatible with newer chai; to be removed (sc-34123)",
       "matchPackageNames": ["dirty-chai"],
       "enabled": false
+    },
+    {
+      "description": "conventional-changelog-conventionalcommits 10.4.x broke releases in some repos; hold below 10.4.0 until investigated",
+      "matchPackageNames": ["conventional-changelog-conventionalcommits"],
+      "allowedVersions": "<10.4.0"
     }
   ],
   "vulnerabilityAlerts": {
