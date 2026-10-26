@@ -1,6 +1,6 @@
 # wmfs/renovate-config
 
-Shared Renovate preset for Tymly repos ([sc-34114](https://app.shortcut.com/wmfs/story/34114), epic [sc-34113](https://app.shortcut.com/wmfs/epic/34113)).
+Shared Renovate preset for Tymly repos.
 
 ## Use
 
