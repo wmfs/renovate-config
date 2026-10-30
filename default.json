@@ -68,9 +68,9 @@
       "enabled": false
     },
     {
-      "description": "conventional-changelog-conventionalcommits 10.4.x broke releases in some repos; hold below 10.4.0 until investigated",
+      "description": "conventional-changelog-conventionalcommits v10 and above broke releases in some repos; hold below 10 until investigated (sc-34125)",
       "matchPackageNames": ["conventional-changelog-conventionalcommits"],
-      "allowedVersions": "<10.4.0"
+      "allowedVersions": "<10"
     }
   ],
   "vulnerabilityAlerts": {
