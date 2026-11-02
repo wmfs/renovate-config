@@ -142,11 +142,11 @@ function classify (pr) {
 }
 
 // Renovate lists majors waiting for approval under "## Pending Approval" as
-// "- [ ] <!-- approve-branch=... -->title"
+// " - [ ] <!-- approve-branch=... -->title" (note the leading space)
 function pendingApprovals (dashboard) {
   const section = (dashboard.body || '').split(/^## /m).find(s => s.startsWith('Pending Approval'))
   if (!section) return []
-  return [...section.matchAll(/^- \[ \] <!-- approve-branch=[^>]*-->(.+)$/gm)].map(m => m[1].trim())
+  return [...section.matchAll(/^\s*- \[ \] <!-- approve-branch=[^>]*-->(.+)$/gm)].map(m => m[1].trim())
 }
 
 // ---------------------------------------------------------------- Markdown

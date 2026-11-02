@@ -52,3 +52,13 @@ To preview locally:
 ```bash
 READ_TOKEN=$(gh auth token) node scripts/dependency-summary.mjs --dry-run
 ```
+
+### Testing changes to the summary
+
+`--fixture <file>` reads the data from a JSON file instead of GitHub, so you can change how the summary looks or groups PRs without a token. Use it with `--dry-run`, and set `NOW` for repeatable dates:
+
+```bash
+NOW=2026-11-02T09:00:00Z node scripts/dependency-summary.mjs --dry-run --fixture sample.json
+```
+
+The file has the same three lists the GitHub queries return: `openPrs`, `mergedPrs` and `dashboards`. See the field names in `PR_FIELDS`, `MERGED_FIELDS` and `ISSUE_FIELDS` at the top of the script.
