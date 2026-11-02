@@ -33,3 +33,22 @@ Add any repo-specific `packageRules` after `extends`. Rules in the repo's own fi
 - `{{ secrets.NPM }}` must exist as an **org-level** secret in the Mend Renovate app, so repos that never had the `hostRules` block also get it.
 - The `conventional-changelog-conventionalcommits` hold is temporary. Repos already on 10.x keep their version, because Renovate doesn't roll versions back by default. They just stop getting newer ones. Remove the rule once sc-34125 is done.
 - Validate changes with `npx --package renovate -- renovate-config-validator --strict default.json`.
+
+## Weekly dependency summary
+
+`.github/workflows/dependency-summary.yml` runs `scripts/dependency-summary.mjs` every Monday at 09:00 UTC. It opens a "Dependency summary" issue in this repo, and closes the previous week's. The issue lists:
+
+- open security PRs, with those new this week first
+- other Renovate PRs needing action: failing CI, merge conflicts, no checks, waiting for review, or passing but not merged after 7+ days
+- majors waiting for approval on Dependency Dashboards
+- what merged in the last 7 days
+
+To get it by email, watch this repo (**Watch → Custom → Issues**). `@wmfs/tymly-reviewers` is also mentioned in each issue.
+
+Setup: a GitHub App installed on all `wmfs` repos with read access to pull requests, issues, checks, commit statuses and metadata. Its ID goes in the `SUMMARY_APP_ID` Actions variable and its private key in the `SUMMARY_APP_PRIVATE_KEY` secret.
+
+To preview locally:
+
+```bash
+READ_TOKEN=$(gh auth token) node scripts/dependency-summary.mjs --dry-run
+```

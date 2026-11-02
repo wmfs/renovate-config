@@ -1,0 +1,38 @@
+name: Weekly dependency summary
+
+on:
+  schedule:
+    # Mondays 09:00 UTC (09:00 GMT / 10:00 BST), after Renovate's "before 6am on monday" run
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The built-in GITHUB_TOKEN can only see this repo, so a GitHub App
+      # installed across the wmfs organisation provides read access to all repos.
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.SUMMARY_APP_ID }}
+          private-key: ${{ secrets.SUMMARY_APP_PRIVATE_KEY }}
+          owner: wmfs
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Post summary issue
+        run: node scripts/dependency-summary.mjs
+        env:
+          ORG: wmfs
+          READ_TOKEN: ${{ steps.app-token.outputs.token }}
+          WRITE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MENTION: '@wmfs/tymly-reviewers'
