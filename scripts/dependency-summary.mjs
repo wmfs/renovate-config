@@ -38,14 +38,27 @@ const sinceDate = since.toISOString().slice(0, 10)
 
 // ---------------------------------------------------------------- GitHub API
 
-async function gql (query, variables) {
+// GitHub returns an HTML error page (not JSON) when a query times out (502/504)
+// or hits a secondary rate limit, so retry those with a back-off.
+async function gql (query, variables, attempt = 1) {
   const res = await fetch('https://api.github.com/graphql', {
     method: 'POST',
     headers: { Authorization: `Bearer ${READ_TOKEN}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query, variables })
   })
-  const json = await res.json()
-  if (!res.ok || json.errors) throw new Error(`GraphQL error: ${JSON.stringify(json.errors || json)}`)
+  const text = await res.text()
+  let json = null
+  try { json = JSON.parse(text) } catch (e) { /* HTML error page */ }
+
+  const retryable = !json || res.status >= 500 || res.status === 403 || res.status === 429
+  if (retryable && attempt < 5) {
+    const wait = Number(res.headers.get('retry-after')) * 1000 || attempt * 5000
+    console.error(`GitHub returned ${res.status}${json ? '' : ' (non-JSON)'}; retrying in ${wait / 1000}s (attempt ${attempt + 1} of 5)`)
+    await new Promise(resolve => setTimeout(resolve, wait))
+    return gql(query, variables, attempt + 1)
+  }
+  if (!json) throw new Error(`GitHub returned ${res.status} with a non-JSON body: ${text.slice(0, 200)}`)
+  if (!res.ok || json.errors) throw new Error(`GraphQL error (${res.status}): ${JSON.stringify(json.errors || json)}`)
   return json.data
 }
 
@@ -58,12 +71,16 @@ const PR_FIELDS = `
     commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
   }`
 
+// Merged PRs only need enough to list them, which keeps the query light
+const MERGED_FIELDS = `
+  ... on PullRequest { title url mergedAt repository { name } }`
+
 const ISSUE_FIELDS = `
   ... on Issue { number url body repository { name } }`
 
-async function search (q, fields) {
+async function search (q, fields, pageSize = 50) {
   const query = `query($q: String!, $after: String) {
-    search(query: $q, type: ISSUE, first: 100, after: $after) {
+    search(query: $q, type: ISSUE, first: ${pageSize}, after: $after) {
       pageInfo { hasNextPage endCursor }
       nodes { ${fields} }
     }
@@ -94,11 +111,12 @@ async function rest (method, path, body) {
 
 async function collect () {
   if (FIXTURE) return JSON.parse(fs.readFileSync(FIXTURE, 'utf8'))
-  const [openPrs, mergedPrs, dashboards] = await Promise.all([
-    search(`org:${ORG} is:pr is:open author:${RENOVATE} archived:false`, PR_FIELDS),
-    search(`org:${ORG} is:pr is:merged author:${RENOVATE} merged:>=${sinceDate}`, PR_FIELDS),
-    search(`org:${ORG} is:issue is:open author:${RENOVATE} archived:false in:title "Dependency Dashboard"`, ISSUE_FIELDS)
-  ])
+  // One at a time: running these in parallel is what trips GitHub's timeouts
+  // and secondary rate limits
+  const openPrs = await search(`org:${ORG} is:pr is:open author:${RENOVATE} archived:false`, PR_FIELDS)
+  const mergedPrs = await search(`org:${ORG} is:pr is:merged author:${RENOVATE} merged:>=${sinceDate}`, MERGED_FIELDS, 100)
+  const dashboards = await search(`org:${ORG} is:issue is:open author:${RENOVATE} archived:false in:title "Dependency Dashboard"`, ISSUE_FIELDS, 25)
+  console.error(`Found ${openPrs.length} open PRs, ${mergedPrs.length} merged in the last ${DAYS} days, ${dashboards.length} dashboards`)
   return { openPrs, mergedPrs, dashboards }
 }
 
